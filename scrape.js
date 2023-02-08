@@ -4,13 +4,12 @@ const $ = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 
+const urlTpl = "https://api.nasdaq.com/api/quote/__STOCK_SYMBOL__/dividends?assetclass=stocks";
+const stocks = ['a', 'am', 'appl'];
 
-const stocks = {
-  am: "https://api.nasdaq.com/api/quote/AM/dividends?assetclass=stocks"
-};
+let historicalDividendJson = {};
 
-//am: "https://www.nasdaq.com/market-activity/stocks/am/dividend-history"
-//
+
 
 const url = stocks[0];
 
@@ -18,14 +17,13 @@ let chances = [0, 2, 4, 5, 7, 10, 12, 14, 17, 20, 24, 27, 31, 34, 39, 43, 49, 58
 let userAgents = getUserAgentData();
 
 (async () => {
-  for (var stock in stocks) {
-    if (stocks.hasOwnProperty(stock)) {
-      await processPage(stocks[stock])
-    }
+  for (var stock of stocks) {
+    const stockUrl = urlTpl.replace('__STOCK_SYMBOL__', stock);
+    await processPage(stockUrl, stock);
   }
 })();
 
-async function processPage(url) {
+async function processPage(url, stock) {
   const browser = await puppeteer.launch({
     headless: false
   });
@@ -52,9 +50,11 @@ async function processPage(url) {
   console.log('page loaded========================================');
   const rawData = await page.content();
   const jsonRegEx = new RegExp(/<pre.*?>(.*)<\/pre>/);
-  const dividendData = jsonRegEx.exec(rawData);
-  console.log(dividendData);
+  const dividendData = jsonRegEx.exec(rawData)[1];
   const dividendJson = JSON.parse(dividendData);
+
+  historicalDividendJson[stock] = dividendJson
+  console.log(historicalDividendJson[stock]);
 
 
   await page.waitFor(2000);
