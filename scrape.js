@@ -1,29 +1,54 @@
 const puppeteer = require('puppeteer');
 const $ = require('cheerio');
 
-const fs = require('fs');
-const path = require('path');
+const nasdaq = ('../data-sources/nasdaq');
+const nasdaqList = nasdaq.getNASDAQlist;
+
+const nyse = ('../data-sources/nyse');
+const nyseList = nyse.getNYSElist;
+
+const amex = ('../data-sources/amex');
+const amexList = amex.getAMEXList;
 
 const urlTpl = "https://api.nasdaq.com/api/quote/__STOCK_SYMBOL__/dividends?assetclass=stocks";
-const stocks = ['a', 'am', 'appl'];
+
+const symbolLists = {
+  "NASDAQ": nasdaqList,
+  "NYSE": nyseList,
+  "AMEX": amexList
+};
 
 let historicalDividendJson = {};
-
-
-
-const url = stocks[0];
 
 let chances = [0, 2, 4, 5, 7, 10, 12, 14, 17, 20, 24, 27, 31, 34, 39, 43, 49, 58, 69, 82];
 let userAgents = getUserAgentData();
 
 (async () => {
-  for (var stock of stocks) {
-    const stockUrl = urlTpl.replace('__STOCK_SYMBOL__', stock);
-    await processPage(stockUrl, stock);
+  for (var exchange in symbolLists) {
+    console.log('\texchange: ', exchange);
+    if (symbolLists.hasOwnProperty(exchange)) {
+      if (exchange === 'NASDAQ') { // throttle
+        const stockSymbols = symbolLists[exchange];
+
+        console.log('\t\tstockSymbols: ', stockSymbols);
+        for (let stockSymbol in stockSymbols) {
+          console.log('\t\t\tstockSymbol: ', stockSymbol);
+          if (stockSymbol === 'AACG') { // throttle
+
+
+            /* 
+                        console.log(stockSymbol);
+            stockSymbol = stockSymbol.toLowerCase();
+            const stockUrl = urlTpl.replace('__STOCK_SYMBOL__', stockSymbol);
+            await processPage(stockUrl, stock, exchange); */
+          }
+        }
+      }
+    }
   }
 })();
 
-async function processPage(url, stock) {
+async function processPage(url, stock, exchange) {
   const browser = await puppeteer.launch({
     headless: false
   });
@@ -53,8 +78,8 @@ async function processPage(url, stock) {
   const dividendData = jsonRegEx.exec(rawData)[1];
   const dividendJson = JSON.parse(dividendData);
 
-  historicalDividendJson[stock] = dividendJson
-  console.log(historicalDividendJson[stock]);
+  historicalDividendJson[exchange][stock] = dividendJson
+  console.log(historicalDividendJson[exchange][stock]);
 
 
   await page.waitFor(2000);
