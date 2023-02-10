@@ -1,16 +1,19 @@
 const puppeteer = require('puppeteer');
 const $ = require('cheerio');
 
-const nasdaq = ('../data-sources/nasdaq');
-const nasdaqList = nasdaq.getNASDAQlist;
+const fs = require('fs');
+const path = require('path');
 
-const nyse = ('../data-sources/nyse');
-const nyseList = nyse.getNYSElist;
+const nasdaq = require('./data-sources/nasdaq');
+const nasdaqList = nasdaq.getNASDAQlist();
 
-const amex = ('../data-sources/amex');
-const amexList = amex.getAMEXList;
+const nyse = require('./data-sources/nyse');
+const nyseList = nyse.getNYSElist();
 
-const urlTpl = "https://api.nasdaq.com/api/quote/__STOCK_SYMBOL__/dividends?assetclass=stocks";
+const amex = require('./data-sources/amex');
+const amexList = amex.getAMEXlist();
+
+const urlTpl = "https://api.nasdaq.com/api/quote/__STOCK_SYMBOL__/__PARAMS__";
 
 const symbolLists = {
   "NASDAQ": nasdaqList,
@@ -25,66 +28,129 @@ let userAgents = getUserAgentData();
 
 (async () => {
   for (var exchange in symbolLists) {
-    console.log('\texchange: ', exchange);
+    console.log(`exchange: ,${exchange}=========================\n\n`);
+
     if (symbolLists.hasOwnProperty(exchange)) {
-      if (exchange === 'NASDAQ') { // throttle
-        const stockSymbols = symbolLists[exchange];
+      const stockSymbols = symbolLists[exchange];
+      for (let stockSymbol in stockSymbols) {
+        stockSymbol = stockSymbol.toLowerCase();
 
-        console.log('\t\tstockSymbols: ', stockSymbols);
-        for (let stockSymbol in stockSymbols) {
-          console.log('\t\t\tstockSymbol: ', stockSymbol);
-          if (stockSymbol === 'AACG') { // throttle
-
-
-            /* 
-                        console.log(stockSymbol);
-            stockSymbol = stockSymbol.toLowerCase();
-            const stockUrl = urlTpl.replace('__STOCK_SYMBOL__', stockSymbol);
-            await processPage(stockUrl, stock, exchange); */
-          }
+        const stockUrlParamTpl = urlTpl.replace('__STOCK_SYMBOL__', stockSymbol);
+        const exchangePath = path.join(__dirname, exchange);
+        const subDir = stockSymbol.charAt(0).toUpperCase();
+        const stockPath = path.join(exchangePath, subDir, `${stockSymbol}.json`);
+        let stockUrl = null;
+        if (!fs.existsSync(stockPath)) {
+          await processPage({
+            stockUrl,
+            stockUrlParamTpl,
+            stockSymbol,
+            exchange,
+            exchangePath,
+            stockPath,
+            subDir,
+            dividendData: null
+          });
+        } else {
+          console.log(`\tSkipping: ${stockSymbol}`)
         }
+
       }
     }
   }
 })();
 
-async function processPage(url, stock, exchange) {
+
+async function processPage(passed) {
+  console.log(`processing: ${passed['stockSymbol']} -----------------`);
+
+  const stockUrlParamTpl = passed['stockUrlParamTpl'];
+  let newStockUrl = stockUrlParamTpl.replace('__PARAMS__', 'dividends?assetclass=stocks');
+  passed['stockUrl'] = newStockUrl;
+
+  let dividendJson = await getPageContent(passed);
+
+  if (dividendJson === null ||
+    dividendJson.data === null ||
+    dividendJson.data.dividends === null ||
+    dividendJson.data.dividends.rows === null) {
+    newStockUrl = stockUrlParamTpl.replace('__PARAMS__', 'dividends?assetclass=etf');
+    passed['stockUrl'] = newStockUrl;
+    dividendJson = await getPageContent(passed);
+  }
+
+  passed['dividendJson'] = dividendJson;
+
+  // console.log(`\t\t in processPage: \n\n${JSON.stringify(passed['dividendJson'])}`)
+
+  if (dividendJson.data !== undefined && dividendJson.data !== null &&
+    dividendJson.data.dividends !== undefined && dividendJson.data.dividends !== null &&
+    dividendJson.data.dividends.rows !== undefined && dividendJson.data.dividends.rows !== null) {
+    await saveData(passed);
+  } else {
+    console.log(`\tSKIPPING ${passed['stockSymbol']}\n\n`)
+  }
+
+  /* if (passed['stockSymbol'] === 'dgre') {
+    process.exit(0);
+  } */
+
+}
+
+async function getPageContent(passed) {
   const browser = await puppeteer.launch({
-    headless: false
+    headless: true
   });
 
   const page = await browser.newPage();
-  const override = Object.assign(page.viewport(), {
-    height: 1600,
-    width: 1366
-  });
-  await page.setViewport(override);
 
   const userAgent = getUserAgent();
 
   await page.setUserAgent(userAgent.agent);
 
-  await page.goto(url, {
+  await page.goto(passed['stockUrl'], {
     waitUntil: 'domcontentloaded',
     timeout: 300000
   });
 
   page.setDefaultTimeout(0);
-  //await page.waitForSelector('h1.dividend-history__title');
 
-  console.log('page loaded========================================');
   const rawData = await page.content();
   const jsonRegEx = new RegExp(/<pre.*?>(.*)<\/pre>/);
   const dividendData = jsonRegEx.exec(rawData)[1];
   const dividendJson = JSON.parse(dividendData);
 
-  historicalDividendJson[exchange][stock] = dividendJson
-  console.log(historicalDividendJson[exchange][stock]);
-
-
-  await page.waitFor(2000);
   await browser.close();
 
+  return dividendJson;
+}
+
+async function saveData(passed) {
+  const dividendJson = passed['dividendJson']
+
+  // console.log(`\t\t in saveData: \n\n${JSON.stringify(dividendJson)}`);
+
+  if (dividendJson !== null &&
+    dividendJson.data !== undefined && dividendJson.data !== null &&
+    dividendJson.data.dividends !== undefined && dividendJson.data.dividends !== null &&
+    dividendJson.data.dividends.rows !== undefined && dividendJson.data.dividends.rows !== null) {
+    if (!fs.existsSync(passed['exchangePath'])) {
+      fs.mkdirSync(passed['exchangePath'], {
+        recursive: true
+      });
+    }
+
+    if (!fs.existsSync(path.join(passed['exchangePath'], passed['subDir']))) {
+      fs.mkdirSync(path.join(passed['exchangePath'], passed['subDir']), {
+        recursive: true
+      });
+    }
+
+    fs.writeFileSync(path.join(passed['stockPath']), JSON.stringify(passed['dividendJson']));
+  } else {
+
+    console.log(`\tNo Dividend Data: ${passed['stockSymbol']}\n\n${dividendData}\n\n`)
+  }
 }
 
 function getUserAgent() {
@@ -195,10 +261,6 @@ function getUserAgentData() {
 
   }
 }
-
-
-
-
 
 function showHTML(html) {
   /*
