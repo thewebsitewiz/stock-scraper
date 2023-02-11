@@ -1,4 +1,5 @@
-.gitignore
+#MacOS Specific
+.DS_Store
 
 # Logs
 logs

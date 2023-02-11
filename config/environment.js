@@ -3,7 +3,7 @@ const path = require("path");
 
 const locations = {
    work: "/Users/dluken/Documents/Learning/stock-scraper/config",
-   home: "",
+   home: "/Users/dennisluken/Documents/Projects/code/stock-scraper/config",
 };
 let env = null;
 
