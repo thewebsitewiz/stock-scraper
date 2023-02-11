@@ -1,6 +1,6 @@
-const fs = require("fs");
+/* const fs = require("fs");
 const path = require("path");
-
+ */
 let nasdaq;
 let nasdaqList;
 
@@ -10,8 +10,13 @@ let nyseList;
 let amex;
 let amexList;
 
-module.exports.getExchangeSymbols = (scope = all) => {
-   let symbolsList = {};
+let symbolsList: any = {};
+
+module.exports.getExchangeSymbols = (scope: string) => {
+
+   if (scope === null || scope === undefined) {
+      scope = "all";
+   }
 
    if (scope === "all" || scope === "NASDAQ") {
       nasdaq = require("../data-sources/nasdaq");

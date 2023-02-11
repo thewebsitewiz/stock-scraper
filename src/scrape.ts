@@ -55,7 +55,7 @@ let userAgents = getUserAgentData();
    }
 })();
 
-async function processPage(passed) {
+async function processPage(passed: any) {
    console.log(`processing: ${passed["stockSymbol"]} -----------------`);
 
    const stockUrlParamTpl = passed["stockUrlParamTpl"];
@@ -107,7 +107,7 @@ async function processPage(passed) {
    */
 }
 
-async function getPageContent(passed) {
+async function getPageContent(passed: any) {
    const browser = await puppeteer.launch({
       headless: true,
    });
@@ -127,15 +127,24 @@ async function getPageContent(passed) {
 
    const rawData = await page.content();
    const jsonRegEx = new RegExp(/<pre.*?>(.*)<\/pre>/);
-   const dividendData = jsonRegEx.exec(rawData)[1];
-   const dividendJson = JSON.parse(dividendData);
+
+   const result = jsonRegEx.exec(rawData);
+   let dividendData: string | null = null;
+   if (result !== null && result[1] !== null) {
+      dividendData = result[1];
+   }
+
+   let dividendJson = null;
+   if (dividendData !== null) {
+      dividendJson = JSON.parse(dividendData);
+   }
 
    await browser.close();
 
    return dividendJson;
 }
 
-async function saveData(passed) {
+async function saveData(passed: any) {
    const dividendJson = passed["dividendJson"];
 
    // console.log(`\t\t in saveData: \n\n${JSON.stringify(dividendJson)}`);
@@ -167,7 +176,7 @@ async function saveData(passed) {
       );
    } else {
       console.log(
-         `\tNo Dividend Data: ${passed["stockSymbol"]}\n\n${dividendData}\n\n`
+         `\tNo Dividend Data: ${passed["stockSymbol"]}\n\n${dividendJson}\n\n`
       );
    }
 }
@@ -177,103 +186,104 @@ function getUserAgent() {
 
    const pick = Math.floor(Math.random() * chancesLength);
 
-   let choice;
+   let choice: string = "82";
    for (let i = 0; i < chancesLength; i++) {
       if (pick <= chances[i]) {
-         choice = chances[i];
+         choice = chances[i].toString();
       }
       if (pick === chances[i]) {
          break;
       }
    }
 
-   return userAgents[choice];
+   if (choice !== undefined) {
+      return userAgents[choice];
+   }
 }
 
 function getUserAgentData() {
-   return {
-      82: {
+   const userAgnets: any = {
+      "82": {
          agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36",
          name: "Chrome 72.0 Win10",
       },
-      69: {
+      "69": {
          agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.119 Safari/537.36",
          name: "Chrome 72.0 Win10",
       },
-      58: {
+      "58": {
          agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:65.0) Gecko/20100101 Firefox/65.0",
          name: "Firefox Generic Win10",
       },
-      49: {
+      "49": {
          agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36",
          name: "Chrome 72.0 Win10",
       },
-      43: {
+      "43": {
          agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.0.3 Safari/605.1.15",
          name: "Safari 12.0 macOS",
       },
-      39: {
+      "39": {
          agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36",
          name: "Chrome 72.0 macOS",
       },
-      34: {
+      "34": {
          agent: "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)",
          name: "Chrome/72.0.3626.121 Safari/537.36",
-         name: "Chrome 72.0 Win7",
       },
-      31: {
+      "31": {
          agent: "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:65.0) Gecko/20100101 Firefox/65.0",
          name: "Firefox Generic Win7",
       },
-      27: {
+      "27": {
          agent: "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:65.0) Gecko/20100101 Firefox/65.0",
          name: "Firefox Generic Linux",
       },
-      24: {
+      "24": {
          agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.119 Safari/537.36",
          name: "Chrome 72.0 macOS",
       },
-      20: {
+      "20": {
          agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36",
          name: "Chrome 71.0 Win10",
       },
-      17: {
+      "17": {
          agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/17.17134",
          name: "Edge 17.0 Win10",
       },
-      14: {
+      "14": {
          agent: "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.119 Safari/537.36",
          name: "Chrome 72.0 Win7",
       },
-      12: {
+      "12": {
          agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36",
          name: "Chrome 72.0 macOS",
       },
-      10: {
+      "10": {
          agent: "Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0",
          name: "Firefox 60.0 Linux",
       },
-      7: {
+      "7": {
          agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36",
          name: "Chrome Generic Win10",
       },
-      6: {
+      "6": {
          agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:65.0) Gecko/20100101 Firefox/65.0",
          name: "Firefox Generic MacOSX",
       },
-      5: {
+      "5": {
          agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/18.17763",
          name: "Edge 18.0 Win10",
       },
-      4: {
+      "4": {
          agent: "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36",
          name: "Chrome 72.0 Win7",
       },
-      2: {
+      "2": {
          agent: "Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko",
          name: "IE 11.0 for Desktop Win10",
       },
-      0: {
+      "0": {
          agent: "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko",
          name: "IE 11.0 for Desktop Win7",
       },
