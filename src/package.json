@@ -4,12 +4,13 @@
   "description": "",
   "main": "dist/scrape.js",
   "scripts": {
-    "start": "node --inspect=5858 -r ts-node/register ./src/scrape.ts",
+    "start": "node --inspect=5858 -r ts-node/register ./scrape.ts",
     "start:watchrrr": "nodemon",
-    "start-server": "./node_modules/.bin/ts-node ./src/scrape.ts",
+    "start-server": "./node_modules/.bin/ts-node ./scrape.ts",
     "start:watch": "./node_modules/.bin/nodemon  -w ./src --ext \".ts\" --exec \"npm run start-server\"",
     "dev": "./node_modules/nodemon/bin/nodemon.js",
-    "build": "rimraf ./build && tsc"
+    "build": "rimraf ./build && tsc",
+    "start:watch-dev": "./node_modules/.bin/nodemon  -w ./src --ext \".ts\" "
   },
   "nodemonConfig": {
     "ignore": [

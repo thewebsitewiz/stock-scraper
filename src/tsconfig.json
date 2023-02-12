@@ -1,4 +1,7 @@
 {
+    "lib": ["es2015"],
+    "include": ["**/*.ts", ],
+    "exclude": ["node_modules", ".vscode", "**/*.spec.ts"],
     "compilerOptions": {
         "target": "es5",
         "module": "commonjs",
@@ -12,8 +15,17 @@
         "resolveJsonModule": true,
         "types": ["node"],
         "typeRoots": ["./node_modules/@types"],
+        "baseUrl": "/",
+        "paths": {
+            "@interfaces/*": [
+                "interfaces/*"
+            ],
+            "@config/*": [
+                "config/*"
+            ],
+            "@utils/*": [
+                "utils/*"
+            ],
+        },
     },
-    "lib": ["es2015"],
-    "include": ["**/*.ts", ],
-    "exclude": ["node_modules", ".vscode", "**/*.spec.ts"]
 }
