@@ -11,6 +11,7 @@
         "rootDir": "/",
         "strict": true,
         "noImplicitAny": true,
+        "noImplicitThis": false,
         "esModuleInterop": true,
         "resolveJsonModule": true,
         "types": ["node"],
@@ -23,8 +24,11 @@
             "@config/*": [
                 "config/*"
             ],
+            "@schemas/*": [
+                "schemas/*"
+            ],
             "@utils/*": [
-                "utils/*"
+                "/utils/*"
             ],
         },
     },

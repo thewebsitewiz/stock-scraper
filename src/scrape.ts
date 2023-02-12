@@ -1,13 +1,10 @@
 const puppeteer = require("puppeteer");
 const $ = require("cheerio");
 
-const fs = require("fs");
-const path = require("path");
+//const fs = require("fs");
+//const path = require("path");
 
 const UserAgents = require("./utils/user-agents");
-
-const symbolUtils = require("./utils/symbol-utils");
-const symbolLists = symbolUtils.getExchangeSymbols();
 
 const urlTpl = "https://api.nasdaq.com/api/quote/__STOCK_SYMBOL__/__PARAMS__";
 const stockInfoUrlTpl = "https://api.nasdaq.com/api/quote/__STOCK__/info?assetclass=stocks";
