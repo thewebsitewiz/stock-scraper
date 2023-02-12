@@ -1,10 +1,10 @@
-const puppeteer = require("puppeteer");
-const $ = require("cheerio");
+// const puppeteer = require("puppeteer");
+// const $ = require("cheerio");
 
 //const fs = require("fs");
 //const path = require("path");
 
-const UserAgents = require("./utils/user-agents");
+
 
 const urlTpl = "https://api.nasdaq.com/api/quote/__STOCK_SYMBOL__/__PARAMS__";
 const stockInfoUrlTpl = "https://api.nasdaq.com/api/quote/__STOCK__/info?assetclass=stocks";
@@ -106,38 +106,7 @@ async function processStock(passed: any) {
    await saveData(passed, "dividendJson");
 }
 
-async function getPageContent(passed: any, url: string) {
-   const browser = await puppeteer.launch({
-      headless: true,
-   });
 
-   const page = await browser.newPage();
-   const userAgent = UserAgents.getUserAgent();
-   await page.setUserAgent(userAgent.agent);
-   await page.goto(passed[url], {
-      waitUntil: "domcontentloaded",
-      timeout: 300000,
-   });
-   page.setDefaultTimeout(0);
-
-   const rawData = await page.content();
-   const jsonRegEx = new RegExp(/<pre.*?>(.*)<\/pre>/);
-
-   const result = jsonRegEx.exec(rawData);
-   let pageContent: string | null = null;
-   if (result !== null && result[1] !== null) {
-      pageContent = result[1];
-   }
-
-   let pageJson = null;
-   if (pageContent !== null) {
-      pageJson = JSON.parse(pageContent);
-   }
-
-   await browser.close();
-
-   return pageJson;
-}
 
 async function saveData(passed: any, jsonData: string) {
    const passedJson = passed[jsonData];

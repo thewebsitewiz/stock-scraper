@@ -1,5 +1,5 @@
 // https://stackoverflow.com/questions/39596625/nested-objects-in-mongoose-schemas
-
+const mongoose = require('mongoose');
 
 const Notification = mongoose.Schema({
     notification: String

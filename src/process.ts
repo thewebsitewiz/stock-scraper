@@ -2,11 +2,14 @@
 const fs = require("fs");
 const path = require("path");
 
-const mongoose = require('mongoose');
 const { StockSymbolInfo } = require('./interfaces/stockSymbolInfo');
 const { StockSymbol } = require('./schemas/stockSymbols');
 
 const loopUtils = require("./utils/loop-utils");
+const contentUtils = require("./utils/content-utils");
+
+const companyProfileUrlTpl = "https://api.nasdaq.com/api/company/__STOCK_SYMBOL__/company-profile";
+
 
 // loopUtils.loopThruStocks(insertStockSymbol);
 loopUtils.loopThruStocks(getStockDataForInsert);
@@ -26,20 +29,82 @@ async function getStockDataForInsert(exchange: string, stockSymbol: string) {
         `${stockSymbol}-info.json`
     );
 
-    const stockDividendPath = path.join(
-        exchangePath,
-        subDir,
-        `${stockSymbol}.json`
-    );
-
-
     try {
-        const stockInfoJson = fs.readFileSync(stockInfoPath, 'utf8');
+        const stockInsert: typeof StockSymbolInfo = {};
 
+        const stockInsertInfo = [
+            "symbol",
+            "companyName",
+            "stockType",
+            "exchange",
+            "isNasdaqListed",
+            "isNasdaq100",
+            "isHeld",
+            "assetClass",
+            "keyStats",
+            "notifications"
+        ];
 
-        console.log(stockInfoJson);
+        const stockInsertSummary = [
+            "AddressString",
+            "Address",
+            "Phone",
+            "Industry",
+            "Sector",
+            "Region",
+            "CompanyUrl",
+            "CompanyDescription",
+            "KeyExecutives"
+        ];
+
+        const stockJson = fs.readFileSync(stockInfoPath, 'utf8');
+        if (stockJson?.data !== null) {
+
+            for (let property of stockInsertInfo) {
+                stockInsert[property] = stockJson[property];
+            }
+        }
+
+        const stockSummaryUrl = companyProfileUrlTpl.replace(
+            "__STOCK_SYMBOL__",
+            stockSymbol
+        );
+
+        const summaryFilePath = path.join(exchangePath, subDir, `${stockSymbol}-summary.json`);
+        let summaryJson;
+
+        if (!fs.existsSync(summaryFilePath)) {
+            summaryJson = contentUtils.getPageContent({ summaryUrl: stockSummaryUrl }, "summaryUrl");
+
+            if (summaryJson?.data !== null) {
+                fs.writeFileSync(
+                    summaryFilePath,
+                    JSON.stringify(summaryJson)
+                );
+
+            }
+        }
+        else {
+            summaryJson = fs.readFileSync(summaryFilePath, 'utf8');
+        }
+
+        if (summaryJson?.data !== null) {
+            for (let property of stockInsertSummary) {
+                if (summaryJson[property] !== undefined
+                    && summaryJson[property]?.value !== null) {
+                    stockInsert[property] = summaryJson[property]?.value;
+                }
+                else {
+                    stockInsert[property] = null;
+                }
+
+            }
+        }
+
+        let stock = new StockSymbol(stockInsert);
+
     } catch (err) {
-        console.error(stockInfoPath, err);
+        console.error(exchange, stockSymbol, err);
     }
 
 }
