@@ -12,12 +12,12 @@ module.exports.loopThruStocks = async (doThis: Function) => {
                 stockSymbol = stockSymbol.toLowerCase();
                 await doThis(exchange, stockSymbol);
                 cnt++;
+                /* 
                 if (cnt > 5) {
-                    // *************************
-                    process.exit(0)
-                    // *************************
-
-                }
+                // *************************
+                // process.exit(0)
+                // *************************
+                } */
             }
         }
     }

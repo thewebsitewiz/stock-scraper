@@ -1,4 +1,6 @@
 // /Users/dluken/Documents/Learning/stock-scraper/NASDAQ/A
+require('dotenv/config');
+
 const fs = require("fs");
 const path = require("path");
 
@@ -56,9 +58,13 @@ async function getStockDataForInsert(exchange: string, stockSymbol: string) {
         const stockInsert: typeof StockSymbolInfo = {};
 
         const stockJson = fs.readFileSync(stockInfoPath, 'utf8');
-        if (stockJson?.data !== null) {
+        console.log("stockJson: ", JSON.parse(stockJson));
+        if (stockJson !== undefined &&
+            stockJson?.["data"] !== null) {
             for (let property of stockInsertInfo) {
-                stockInsert[property] = stockJson[property];
+                if (stockInsertInfo.hasOwnProperty(property)) {
+                    stockInsert[property] = stockJson["data"][property];
+                }
             }
         }
 
@@ -80,6 +86,8 @@ async function getStockDataForInsert(exchange: string, stockSymbol: string) {
             );
 
         }
+        console.log("stockInsert: ", stockInsert);
+        // console.log("summaryJson: ", summaryJson)
 
         // *************************
         // process.exit(0)
@@ -92,6 +100,8 @@ async function getStockDataForInsert(exchange: string, stockSymbol: string) {
 
         if (summaryJson?.data !== null) {
             for (let property of stockInsertSummary) {
+                console.log(`${property}: ${stockInsert[property]}`);
+
                 if (summaryJson[property] !== undefined
                     && summaryJson[property]?.value !== null) {
                     stockInsert[property] = summaryJson[property]?.value;
@@ -102,9 +112,12 @@ async function getStockDataForInsert(exchange: string, stockSymbol: string) {
 
             }
 
+            stockInsert["exchange"] = exchange;
+            console.log("stock insert:", stockSymbol, stockInsert)
             try {
-                let stock = new StockSymbol(stockInsert);
-                console.log("stock insert:", stock)
+                let stock: any = new StockSymbol(stockInsert);
+                const stockInsertResult: any = await stock.save();
+                //console.log("stock insert:", stock, stockInsertResult)
 
             } catch (err) {
                 console.error(exchange, stockSymbol, err);

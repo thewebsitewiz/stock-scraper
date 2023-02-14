@@ -1,5 +1,7 @@
 // https://stackoverflow.com/questions/39596625/nested-objects-in-mongoose-schemas
-const mongoose = require('mongoose');
+require('dotenv/config');
+
+var mongoose = require('mongoose');
 
 const Notification = mongoose.Schema({
     notification: String
@@ -57,7 +59,7 @@ const StockSymbolSchema = mongoose.Schema({
     },
     keyStats: {
         type: String,
-        required: true,
+        required: false,
     },
     notifications: [Notification],
     AddressString: {
@@ -104,4 +106,4 @@ StockSymbolSchema.set('toJSON', {
     virtuals: true,
 });
 
-exports.StockSymbol = mongoose.model('StockSymbol', StockSymbolSchema);
+module.exports = mongoose.model('StockSymbolSchema', StockSymbolSchema);
