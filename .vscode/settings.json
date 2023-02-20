@@ -18,8 +18,10 @@
     "include": ["src/**/*.ts", ],
     "exclude": ["node_modules", ".vscode", "src/**/*.spec.ts"],
     "cSpell.words": [
+        "assetclass",
         "dennisluken",
         "dluken",
-        "PSWD"
+        "PSWD",
+        "stocksymbols"
     ]
 }

@@ -1,14 +1,18 @@
 require('dotenv/config');
 
+
+var mongoose = require("mongoose");
+
+const StockSymbols = require("../schemas/stockSymbols");
+
 const DB_NAME = "bobtheskull";
 const DB_USER = "thewebsitewiz";
 const DB_PSWD = "6beFJJHk0kKA4uvo";
 
 
 // const CONN_STR = `mongodb+srv://${DB_USER}:${DB_PSWD}@${DB_NAME}.tyssykn.mongodb.net/?retryWrites=true&w=majority`
-const CONN_STR = `mongodb+srv://${DB_USER}:${DB_PSWD}@${DB_NAME}.tyssykn.mongodb.net/?retryWrites=true&w=majority`
-const mongoose = require('mongoose');
-
+// const CONN_STR = `mongodb+srv://${DB_USER}:${DB_PSWD}@${DB_NAME}.tyssykn.mongodb.net/?retryWrites=true&w=majority`
+const CONN_STR = `mongodb+srv://thewebsitewiz:6beFJJHk0kKA4uvo@bobtheskull.tyssykn.mongodb.net/FATDATA`;
 var DB_CONN: any;
 
 main()
@@ -23,27 +27,35 @@ async function main() {
     db.once("open", function () {
         console.log("Connected successfully");
         DB_CONN = db;
-
-
     });
 
 }
+module.exports.patchStock = async (stockSymbol: string, stockInfo: any) => {
 
-module.exports.addSymbolSummary = async (collectionName: string, data: any) => {
-    if (collectionName !== null) {
-        console.log("collectionName: ", collectionName);
+    const stocksymbols = StockSymbols();
+    const saveSymbolData = stocksymbols.updateOne({ symbol: stockSymbol }, stockInfo);
+    console.log(`saveSymbolData: ${saveSymbolData}`)
+}
 
-        try {
-            const dataPassed = JSON.stringify(data, undefined, 2);
-            const result = await DB_CONN.collection(collectionName).save(data);
-            console.log(`Success with ${collectionName}: ${result}`);
-        } catch (err) {
-            throw new Error(`Failed collection: ${collectionName} - ${err}\n${data}`);
+
+
+module.exports.addSymbolSummary = async (data: any) => {
+    //console.log(data);
+    const dataPassed = JSON.stringify(data, undefined, 2);
+    const saveSymbolData = new StockSymbols(data);
+
+    try {
+        const result = await saveSymbolData.save();
+        if (!!result) {
+            console.log(`Success with ${data.symbol}`);
         }
+    } catch (err) {
+        console.error(`\n\n*********************************n\nFailed saveSymbolData: - ${err}\n${data}\n\n${saveSymbolData}\n\n*********************************n\n`)
+        // *************************
+        process.exit(0)
+        // *************************
     }
-    else {
-        return new Error("Missing collection name")
-    }
+
 }
 
 module.exports.dbClose = async () => {

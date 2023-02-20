@@ -6,8 +6,8 @@
 
 
 
-const urlTpl = "https://api.nasdaq.com/api/quote/__STOCK_SYMBOL__/__PARAMS__";
-const stockInfoUrlTpl = "https://api.nasdaq.com/api/quote/__STOCK__/info?assetclass=stocks";
+var urlTpl = "https://api.nasdaq.com/api/quote/__STOCK_SYMBOL__/__PARAMS__";
+var stockInfoUrlTpl = "https://api.nasdaq.com/api/quote/__STOCK__/info?assetclass=stocks";
 (async () => {
    for (let exchange in symbolLists) {
       console.log(`exchange: ,${exchange}=========================\n\n`);

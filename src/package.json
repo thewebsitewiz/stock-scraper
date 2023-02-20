@@ -1,8 +1,8 @@
 {
-  "name": "stock scrape",
+  "name": "stock dividends",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/scrape.js",
+  "main": "dist/dividends.js",
   "scripts": {
     "start": "node --inspect=5858 -r ts-node/register ./process.ts",
     "start:watchrrr": "nodemon",

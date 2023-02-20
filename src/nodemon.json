@@ -1,6 +1,6 @@
 {
     "ignore": ["**/*.test.ts", "**/*.spec.ts", ".git", ".gitignore", "node_modules"],
     "watch": ["src"],
-    "exec": "ts-node ./process.ts",
+    "exec": "ts-node ./dividends.ts",
     "ext": "ts"
 }
