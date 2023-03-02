@@ -9,7 +9,6 @@ module.exports.loopThruStocks = async (doThis: Function) => {
     const existingSymbolsLookup: { [key: string]: boolean } = {};
     existingSymbols.forEach((symbol: any) => {
         existingSymbolsLookup[symbol["symbol"]] = true;
-        console.log(`${symbol["symbol"]}: ${existingSymbolsLookup[symbol["symbol"]]}`)
     })
 
     for (let exchange in symbolLists) {
@@ -23,7 +22,7 @@ module.exports.loopThruStocks = async (doThis: Function) => {
             for (let stockSymbol of sortedStocks) {
                 // const subDir = stockSymbol.charAt(0).toUpperCase();
                 stockSymbol = stockSymbol.toLowerCase();
-                if (existingSymbolsLookup[stockSymbol] !== true) {
+                if (!existingSymbolsLookup[stockSymbol]) {
                     console.log(`${exchange} = ${stockSymbol}`)
                     await doThis(exchange, stockSymbol);
                 }

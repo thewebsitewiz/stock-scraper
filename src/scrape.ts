@@ -93,7 +93,7 @@ async function getStockInfo(exchange: string, stockSymbol: string) {
    const infoJson = await contentUtils.getPageContent(infoUrl);
 
    for (let property of stockInfoFields) {
-      if (infoJson.data !== undefined &&
+      if (infoJson !== null && infoJson.data !== undefined &&
          infoJson.data !== null &&
          infoJson.data[property].value !== null) {
          const lowerProperty = property.charAt(0).toLowerCase() + property.slice(1);
@@ -114,7 +114,7 @@ async function getStockInfo(exchange: string, stockSymbol: string) {
    const companyJson = await contentUtils.getPageContent(companyUrl);
 
    for (let property of stockCompanyFields) {
-      if (companyJson.data !== undefined &&
+      if (companyJson !== null && companyJson.data !== undefined &&
          companyJson.data !== null &&
          companyJson.data[property] !== undefined &&
          companyJson.data[property] !== null) {
@@ -149,7 +149,7 @@ async function getStockInfo(exchange: string, stockSymbol: string) {
    }
 
    for (let property of stockDataFields) {
-      if (dataJson.data !== undefined &&
+      if (dataJson !== null && dataJson.data !== undefined &&
          dataJson.data !== null &&
          dataJson.data[property] &&
          dataJson.data[property] !== null) {
@@ -157,7 +157,7 @@ async function getStockInfo(exchange: string, stockSymbol: string) {
       }
    }
 
-   if (dataJson.data !== undefined &&
+   if (dataJson !== null && dataJson.data !== undefined &&
       dataJson.data !== null &&
       dataJson.data["dividends"] &&
       dataJson.data["dividends"] !== null) {
