@@ -12,7 +12,22 @@ export interface Address {
 
 
 export interface KeyExecutive {
-    TBD?: string;
+    name: string;
+    title: string;
+}
+
+export interface Headers {
+
+}
+
+export interface Dividend {
+    exOrEffDate?: string;
+    type?: string;
+    amount?: string;
+    declarationDate?: string;
+    recordDate?: string;
+    paymentDate?: string;
+    currency?: string;
 }
 
 export interface StockSymbolInfo {
@@ -25,14 +40,15 @@ export interface StockSymbolInfo {
     isHeld?: boolean | undefined;
     assetClass?: string;
     keyStats: string;
+    addressString?: string;
+    address?: string | undefined;
+    phone?: string | undefined;
+    industry?: string | undefined;
+    sector?: string | undefined;
+    region?: string | undefined;
+    companyUrl?: string | undefined;
+    companyDescription?: string | undefined;
+    keyExecutives?: [KeyExecutive] | undefined;
     notifications?: [Notification] | undefined;
-    AddressString?: string;
-    Address?: Address | undefined;
-    Phone?: string | undefined;
-    Industry?: string | undefined;
-    Sector?: string | undefined;
-    Region?: string | undefined;
-    CompanyUrl?: string | undefined;
-    CompanyDescription?: string | undefined;
-    KeyExecutives?: [KeyExecutive] | undefined;
+    dividends?: [Dividend] | undefined;
 }

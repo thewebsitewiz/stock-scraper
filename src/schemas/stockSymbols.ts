@@ -2,17 +2,20 @@
 require('dotenv/config');
 
 var mongoose = require("mongoose");
-
+/* 
 const Notification = new mongoose.Schema({
-    notification: String
-});
+    notification: {
+        type: String,
+        required: false,
+    }
+}); */
 
 const Address = new mongoose.Schema({
     city: String,
     street: String,
     houseNumber: String,
 });
-
+/* 
 const KeyExecutive = new mongoose.Schema({
     Name: {
         type: String,
@@ -22,7 +25,7 @@ const KeyExecutive = new mongoose.Schema({
         type: String,
         required: false,
     }
-});
+}); */
 
 const StockSymbolSchema = new mongoose.Schema(
     {
@@ -65,36 +68,34 @@ const StockSymbolSchema = new mongoose.Schema(
             type: String,
             required: false,
         },
-        notifications: [Notification],
-        Address: {
+        addressString: {
             type: String,
             required: false,
         },
-        Phone: {
+        phone: {
             type: String,
             required: false,
         },
-        Industry: {
+        industry: {
             type: String,
             required: false,
         },
-        Sector: {
+        sector: {
             type: String,
             required: false,
         },
-        Region: {
+        region: {
             type: String,
             required: false,
         },
-        CompanyUrl: {
+        companyUrl: {
             type: String,
             required: false,
         },
-        CompanyDescription: {
+        companyDescription: {
             type: String,
             required: false,
-        },
-        KeyExecutives: [KeyExecutive]
+        }
     },
     { timestamps: true }
 )

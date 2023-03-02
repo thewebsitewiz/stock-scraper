@@ -23,5 +23,6 @@
         "dluken",
         "PSWD",
         "stocksymbols"
-    ]
+    ],
+    "git.ignoreLimitWarning": true
 }
