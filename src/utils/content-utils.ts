@@ -2,7 +2,7 @@ const puppeteer = require("puppeteer");
 
 const UserAgents = require("./user-agents");
 
-async function getPageContent(passed: any, url: string) {
+async function getPageContent(url: string) {
     const browser = await puppeteer.launch({
         headless: true,
     });
@@ -10,7 +10,7 @@ async function getPageContent(passed: any, url: string) {
     const page = await browser.newPage();
     const userAgent = UserAgents.getUserAgent();
     await page.setUserAgent(userAgent.agent);
-    await page.goto(passed[url], {
+    await page.goto(url, {
         waitUntil: "domcontentloaded",
         timeout: 300000,
     });

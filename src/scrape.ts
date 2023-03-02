@@ -1,140 +1,172 @@
-// const puppeteer = require("puppeteer");
-// const $ = require("cheerio");
+const loopUtils = require("./utils/loop-utils");
+const contentUtils = require("./utils/content-utils");
 
-//const fs = require("fs");
-//const path = require("path");
+const mongoUtils = require("./utils/mongodb-utils");
 
+// const StockSymbolInfo = require('./interfaces/stockSymbolInfo');
+import { StockSymbolInfo } from './interfaces/stockSymbolInfo';
 
+const stockCompanyUrlTpl = "https://api.nasdaq.com/api/quote/__STOCK_SYMBOL__/info?assetclass=stocks";
+const stockInfoUrlTpl = "https://api.nasdaq.com/api/company/__STOCK_SYMBOL__/company-profile";
+const stockDataUrlTpl = "https://api.nasdaq.com/api/quote/__STOCK_SYMBOL__/__PARAMS__";
 
-var urlTpl = "https://api.nasdaq.com/api/quote/__STOCK_SYMBOL__/__PARAMS__";
-var stockInfoUrlTpl = "https://api.nasdaq.com/api/quote/__STOCK__/info?assetclass=stocks";
+const params = [
+   "dividends?assetclass=stocks",
+   "dividends?assetclass=etf"
+];
+
+const stockInfoFields = [
+   "Address",
+   "Phone",
+   "Industry",
+   "Sector",
+   "Region",
+   "CompanyUrl",
+   "CompanyDescription",
+   "KeyExecutives"
+];
+
+const stockCompanyFields = [
+   "symbol",
+   "companyName",
+   "stockType",
+   "exchange",
+   "isNasdaqListed",
+   "isNasdaq100",
+   "isHeld",
+   "secondaryData",
+   "assetClass",
+   "keyStats",
+   "notifications"
+];
+
+const stockDataFields = [
+   "exDividendDate",
+   "dividendPaymentDate",
+   "yield",
+   "annualizedDividend",
+   "payoutRatio",
+   "stockType",
+   "exchange",
+   "isNasdaqListed",
+   "isNasdaq100",
+   "isHeld",
+   "assetClass",
+   "keyStats",
+   "notifications"
+];
+
 (async () => {
-   for (let exchange in symbolLists) {
-      console.log(`exchange: ,${exchange}=========================\n\n`);
+   loopUtils.loopThruStocks(getStockInfo);
+   mongoUtils.dbClose();
+}
+)();
 
-      if (symbolLists.hasOwnProperty(exchange)) {
-         const stockSymbols = symbolLists[exchange];
-         for (let stockSymbol in stockSymbols) {
-            stockSymbol = stockSymbol.toLowerCase();
+async function getStockInfo(exchange: string, stockSymbol: string) {
+   let stockInsert: any = {
+      symbol: "",
+      companyName: "",
+      stockType: "",
+      exchange: "",
+      isNasdaqListed: undefined,
+      isNasdaq100: undefined,
+      isHeld: undefined,
+      assetClass: "",
+      keyStats: "",
+      notifications: undefined,
+      address: undefined,
+      addressString: undefined,
+      phone: "",
+      industry: "",
+      sector: "",
+      region: "",
+      companyUrl: "",
+      companyDescription: "",
+      keyExecutives: undefined,
+   };
 
-            /*             if (stockSymbol !== "disa") {
-                           continue;
-                        } */
+   // Get Stock Info
+   let infoUrl = stockInfoUrlTpl.replace(
+      "__STOCK_SYMBOL__",
+      stockSymbol);
 
-            const stockUrlParamTpl = urlTpl.replace(
-               "__STOCK_SYMBOL__",
-               stockSymbol
-            );
+   const infoJson = await contentUtils.getPageContent(infoUrl);
 
-            const exchangePath = path.join(__dirname, "scrape-data", exchange);
-
-            const subDir = stockSymbol.charAt(0).toUpperCase();
-
-            const stockPath = path.join(
-               exchangePath,
-               subDir,
-               `${stockSymbol}.json`
-            );
-
-            let stockUrl = null;
-
-            // Get Stock Info if stock file does not exist
-            if (!fs.existsSync(stockPath)) {
-               await processStock({
-                  stockUrl,
-                  stockUrlParamTpl,
-                  stockSymbol,
-                  exchange,
-                  exchangePath,
-                  stockPath,
-                  subDir,
-                  dividendData: null,
-               });
-            } else {
-               // Stock file does exist so do not get stock info
-               console.log(`\tSkipping: ${stockSymbol}`);
-            }
-
-            /*             if (stockSymbol === "disa") {
-                           break;
-                        } */
-         }
+   for (let property of stockInfoFields) {
+      if (infoJson.data !== undefined &&
+         infoJson.data !== null &&
+         infoJson.data[property].value !== null) {
+         const lowerProperty = property.charAt(0).toLowerCase() + property.slice(1);
+         stockInsert[lowerProperty] = infoJson.data[property].value;
       }
    }
-})();
 
-async function processStock(passed: any) {
-   console.log(`processing: ${passed["exchange"]}: ${passed["stockSymbol"]} -----------------`);
+   if (stockInsert !== undefined && stockInsert["address"] !== null) {
+      stockInsert["addressString"] = stockInsert["address"];
+      stockInsert["address"] = undefined;
+   }
 
-   let stockInfoUrl = stockInfoUrlTpl.replace(
-      "__STOCK__",
-      passed["stockSymbol"]
-   );
+   // Get Stock Company Profile
+   let companyUrl = stockCompanyUrlTpl.replace(
+      "__STOCK_SYMBOL__",
+      stockSymbol);
 
-   passed["stockInfoUrl"] = stockInfoUrl;
-   let stockInfoJson = await getPageContent(passed, "stockInfoUrl");
-   passed["stockInfoJson"] = stockInfoJson;
-   await saveData(passed, "stockInfoJson");
+   const companyJson = await contentUtils.getPageContent(companyUrl);
 
-   const stockUrlParamTpl = passed["stockUrlParamTpl"];
-   let newStockUrl = stockUrlParamTpl.replace(
+   for (let property of stockCompanyFields) {
+      if (companyJson.data !== undefined &&
+         companyJson.data !== null &&
+         companyJson.data[property] !== undefined &&
+         companyJson.data[property] !== null) {
+         if (property === "symbol") {
+            let lowerSymbol = companyJson.data[property].toLowerCase();
+            companyJson.data[property] = lowerSymbol;
+         }
+         stockInsert[property] = companyJson.data[property];
+      }
+   }
+
+   // Get Stock Data
+   const dataUrlTpl = stockDataUrlTpl.replace(
+      "__STOCK_SYMBOL__",
+      stockSymbol);
+
+   const firstDataUrl = dataUrlTpl.replace(
       "__PARAMS__",
-      "dividends?assetclass=stocks"
+      params[0]
    );
-   passed["stockUrl"] = newStockUrl;
 
-   let dividendJson = await getPageContent(passed, "stockUrl");
-
-   let altJson: any;
-
-   if (dividendJson?.data?.dividends?.rows === null) {
-      newStockUrl = stockUrlParamTpl.replace(
-         "__PARAMS__",
-         "dividends?assetclass=etf"
-      );
-      passed["stockUrl"] = newStockUrl;
-      altJson = await getPageContent(passed, "stockUrl");
-   }
-
-   if (altJson === undefined || altJson?.data === null) {
-      passed["dividendJson"] = dividendJson;
-   }
-   else {
-      passed["dividendJson"] = altJson;
-   }
-
-   await saveData(passed, "dividendJson");
-}
-
-
-
-async function saveData(passed: any, jsonData: string) {
-   const passedJson = passed[jsonData];
-
-   if (!fs.existsSync(passed["exchangePath"])) {
-      fs.mkdirSync(passed["exchangePath"], {
-         recursive: true,
-      });
-   }
-
-   if (!fs.existsSync(path.join(passed["exchangePath"], passed["subDir"]))) {
-      fs.mkdirSync(path.join(passed["exchangePath"], passed["subDir"]), {
-         recursive: true,
-      });
-   }
-
-   let filePath = passed["stockPath"];
-
-   if (jsonData === "stockInfoJson") {
-      filePath = path.join(
-         passed["exchangePath"],
-         passed["subDir"],
-         `${passed["stockSymbol"]}-info.json`
-      );
-   }
-
-   fs.writeFileSync(
-      path.join(filePath),
-      JSON.stringify(passedJson)
+   const secondDataUrl = dataUrlTpl.replace(
+      "__PARAMS__",
+      params[1]
    );
+   let url = firstDataUrl;
+   let dataJson = await contentUtils.getPageContent(firstDataUrl);
+
+   if (dataJson?.data === null) {
+      url = secondDataUrl;
+      dataJson = await contentUtils.getPageContent(secondDataUrl);
+   }
+
+   for (let property of stockDataFields) {
+      if (dataJson.data !== undefined &&
+         dataJson.data !== null &&
+         dataJson.data[property] &&
+         dataJson.data[property] !== null) {
+         stockInsert[property] = dataJson.data[property];
+      }
+   }
+
+   if (dataJson.data !== undefined &&
+      dataJson.data !== null &&
+      dataJson.data["dividends"] &&
+      dataJson.data["dividends"] !== null) {
+      stockInsert["dividends"] = dataJson.data["dividends"].rows;
+   }
+   try {
+      await mongoUtils.insertSymbolData(stockInsert)
+   } catch (err) {
+      console.error("ERROR: addSymbolSummary: ", exchange, stockSymbol, err);
+   }
+
 }
