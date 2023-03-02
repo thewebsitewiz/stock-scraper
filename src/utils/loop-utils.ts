@@ -1,5 +1,5 @@
 const symbolUtils = require("./symbol-utils");
-const symbolLists = symbolUtils.getExchangeSymbols();
+const symbolLists = symbolUtils.getAllSymbols();
 
 const mongoUtils = require("./mongodb-utils");
 

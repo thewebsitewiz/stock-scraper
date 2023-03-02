@@ -10,7 +10,16 @@ let nyseList;
 let amex;
 let amexList;
 
+let all;
+let allList;
+
 let symbolsList: any = {};
+
+module.exports.getAllSymbols = () => {
+   all = require("../data-sources/all");
+   symbolsList["all"] = all.getSymbolList();
+   return symbolsList;
+}
 
 module.exports.getExchangeSymbols = (scope: string) => {
 
