@@ -10,6 +10,10 @@ const stockCompanyUrlTpl = "https://api.nasdaq.com/api/quote/__STOCK_SYMBOL__/in
 const stockInfoUrlTpl = "https://api.nasdaq.com/api/company/__STOCK_SYMBOL__/company-profile";
 const stockDataUrlTpl = "https://api.nasdaq.com/api/quote/__STOCK_SYMBOL__/__PARAMS__";
 
+
+const historicalDataUrlTpl = "https://api.nasdaq.com/api/quote/__STOCK_SYMBOL__/historical?assetclass=stocks&fromdate=2013-03-02&limit=__LIMIT__&todate=2023-03-02"
+
+
 const params = [
    "dividends?assetclass=stocks",
    "dividends?assetclass=etf"
