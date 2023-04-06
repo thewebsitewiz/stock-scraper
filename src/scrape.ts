@@ -3,7 +3,7 @@ const contentUtils = require("./utils/content-utils");
 
 const mySQLUtils = require("./utils/mysql-utils");
 
-import { Company } from "./interfaces/stockSymbols";
+import { Company, Notification } from "./interfaces/stockSymbols";
 
 const companyInfoUrlTpl =
   "https://api.nasdaq.com/api/quote/__STOCK_SYMBOL__/info?assetclass=stocks";
@@ -198,6 +198,8 @@ async function getStockInfo(exchange: string, symbol: string) {
     infoJson.notifications !== undefined &&
     infoJson.notifications.length > 0
   ) {
+    let notificationInsertList: Notification[] = [];
+
     infoJson.notifications.notifications.forEach(async (notification: any) => {
       const notificationInsert: any = { symbols_symbol: symbol };
 
@@ -213,26 +215,28 @@ async function getStockInfo(exchange: string, symbol: string) {
           notification["eventTypes"][0]["message"];
       }
 
-      if (notification["eventTypes"]) {
+      if (
+        notification["eventTypes"] !== undefined &&
+        notification["eventTypes"][0]["eventName"]
+      ) {
         notificationInsert["eventName"] =
           notification["eventTypes"][0]["eventName"];
       }
 
       if (notification["eventTypes"][0]["url"]["value"]) {
-        notificationInsert.push(notification["eventTypes"][0]["url"]["value"]);
-      } else {
-        notificationInsert.push(null);
+        notificationInsert["url"] =
+          notification["eventTypes"][0]["url"]["value"];
       }
 
-      const notificationCols = [
-        "symbols_symbol",
-        "headline",
-        "message",
-        "eventName",
-        "url",
-      ];
+      notificationInsertList.push(notificationInsert);
     });
+
+    // Inserts into Notifications Table
+    mySQLUtils.insertRows("notifications", notificationInsertList);
   }
+
+  // Build KeyExecutives Insert
+
   //
   // OLD FROM HERE DOWN
   //

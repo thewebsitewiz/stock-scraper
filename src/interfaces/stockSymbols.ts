@@ -1,5 +1,8 @@
 export interface Notification {
-  notification?: string;
+  headline?: string;
+  message?: string;
+  eventName?: string;
+  url?: string;
 }
 
 export interface Address {
