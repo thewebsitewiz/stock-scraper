@@ -1,6 +1,6 @@
 {
     "ignore": ["**/*.test.ts", "**/*.spec.ts", ".git", ".gitignore", "node_modules"],
     "watch": ["src"],
-    "exec": "ts-node ./scrape.ts",
+    "exec": "ts-node ./xfer.ts",
     "ext": "ts"
 }

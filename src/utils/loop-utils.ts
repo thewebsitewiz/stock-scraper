@@ -1,34 +1,40 @@
 const symbolUtils = require("./symbol-utils");
-const symbolLists = symbolUtils.getAllSymbols();
+const symbolLists = symbolUtils.getExchangeSymbols();
 
-const mongoUtils = require("./mongodb-utils");
+const mysqlUtils = require("./mongodb-utils");
+
+import { SymbolList, SymbolListInfo } from "../interfaces/stockSymbols";
 
 module.exports.loopThruStocks = async (doThis: Function) => {
+  const existingSymbolsData: SymbolList = await mysqlUtils.getSymbolsWithData();
+  let existingSymbols: any = {};
+  if (existingSymbolsData.length > 0) {
+    existingSymbolsData.forEach((symbolData: SymbolListInfo) => {
+      let ex: string = symbolData["exchangeNickname"];
+      let sym: string = symbolData["symbol"];
+      if (!(existingSymbols[ex] in existingSymbols)) {
+        existingSymbols[ex] = {};
+      }
+      existingSymbols[ex][sym] = true;
+    });
+  }
 
-    const existingSymbols = await mongoUtils.getSymbolsWithData();
-    const existingSymbolsLookup: { [key: string]: boolean } = {};
-    existingSymbols.forEach((symbol: any) => {
-        existingSymbolsLookup[symbol["symbol"]] = true;
-    })
+  for (let exchange in symbolLists) {
+    if (symbolLists.hasOwnProperty(exchange)) {
+      const symbolList = Object.keys(symbolLists[exchange]);
 
-    for (let exchange in symbolLists) {
-        if (symbolLists.hasOwnProperty(exchange)) {
-            const stockSymbols = symbolLists[exchange];
-            const stocks = Object.keys(stockSymbols);
-            const sortedStocks = stocks.sort();
-
-            exchange = exchange.toLowerCase();
-
-            for (let stockSymbol of sortedStocks) {
-                // const subDir = stockSymbol.charAt(0).toUpperCase();
-                stockSymbol = stockSymbol.toLowerCase();
-                if (!existingSymbolsLookup[stockSymbol]) {
-                    console.log(`${exchange} = ${stockSymbol}`)
-                    await doThis(exchange, stockSymbol);
-                }
-            }
+      for (let symbol of symbolList) {
+        if (
+          existingSymbols[exchange] !== undefined &&
+          existingSymbols[exchange][symbol] !== undefined &&
+          existingSymbols[exchange][symbol] === true
+        ) {
+          console.log(`${exchange} : ${symbol}`);
+          let results = await doThis(exchange, symbol);
+          return results;
         }
-        // }
+      }
     }
+    // }
+  }
 };
-
