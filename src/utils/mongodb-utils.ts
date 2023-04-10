@@ -128,7 +128,7 @@ async function _checkSymbol(symbol: string) {
     console.log(docs);
   });
 }
-
+/* 
 module.exports.insertSymbolData = async (data: StockSymbolInfo) => {
   const dataPassed = JSON.stringify(data, undefined, 2);
 
@@ -222,7 +222,7 @@ module.exports.insertSymbolData = async (data: StockSymbolInfo) => {
       // *************************
     }
   }
-};
+}; */
 
 module.exports.dbClose = async () => {
   try {

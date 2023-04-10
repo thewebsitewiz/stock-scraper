@@ -3,7 +3,15 @@ const contentUtils = require("./utils/content-utils");
 
 const mySQLUtils = require("./utils/mysql-utils");
 
-import { Company, Notification } from "./interfaces/stockSymbols";
+const log = true;
+
+import {
+  Company,
+  Dividend,
+  KeyExecutive,
+  Notification,
+  StockSymbolInfo,
+} from "./interfaces/stockSymbols";
 
 const companyInfoUrlTpl =
   "https://api.nasdaq.com/api/quote/__STOCK_SYMBOL__/info?assetclass=stocks";
@@ -69,46 +77,48 @@ const dividendInfoFields = [
   "currency",
 ];
 
+const symbolTableFields: any = {
+  symbol: "",
+  companyName: "",
+  stockType: "",
+  exchange: "",
+  exchangeNickname: "",
+  isNasdaqListed: undefined,
+  isNasdaq100: undefined,
+  assetClass: "",
+  keyStats: "",
+  addressString: undefined,
+  phone: "",
+  industry: "",
+  sector: "",
+  region: "",
+  companyUrl: "",
+  companyDescription: "",
+};
+
+const keyExecutivesTableFields: any = ["name", "title"];
+
+const notificationsTableFields: any = ["headline", "message", "eventName"];
+
+const dividendsTableFields: any = [
+  "exOrEffDate",
+  "type",
+  "amount",
+  "declarationDate",
+  "recordDate",
+  "paymentDate",
+  "currency",
+];
+
 (async () => {
+  if (log) console.log("\tStarting Loop");
   loopUtils.loopThruStocks(getStockInfo);
   // .dbClose();
 })();
 
 async function getStockInfo(exchange: string, symbol: string) {
-  const symbolTableFields: any = {
-    symbol: "",
-    companyName: "",
-    stockType: "",
-    exchange: "",
-    exchangeNickname: "",
-    isNasdaqListed: undefined,
-    isNasdaq100: undefined,
-    assetClass: "",
-    keyStats: "",
-    addressString: undefined,
-    phone: "",
-    industry: "",
-    sector: "",
-    region: "",
-    companyUrl: "",
-    companyDescription: "",
-  };
-
-  const keyExecutivesTableFields: any = ["name", "title"];
-
-  const notificationsTableFields: any = ["headline", "message", "eventName"];
-
-  const dividendsTableFields: any = [
-    "exOrEffDate",
-    "type",
-    "amount",
-    "declarationDate",
-    "recordDate",
-    "paymentDate",
-    "currency",
-  ];
-
   // get Company Info
+  if (log) console.log("\tGetting Company Info");
   const companyInfoUrl = companyInfoUrlTpl.replace("__STOCK_SYMBOL__", symbol);
   const infoJson = await contentUtils.getPageContent(companyInfoUrl);
 
@@ -117,6 +127,7 @@ async function getStockInfo(exchange: string, symbol: string) {
     "__STOCK_SYMBOL__",
     symbol
   );
+  if (log) console.log("\tGetting Company Profile");
   const profileJson = await contentUtils.getPageContent(companyProfileUrl);
 
   // get Dividends
@@ -132,6 +143,7 @@ async function getStockInfo(exchange: string, symbol: string) {
     dividendParams[1]
   );
 
+  if (log) console.log("\tGetting Dividends");
   let dividendJson = await contentUtils.getPageContent(firstDividendUrl);
 
   if (dividendJson?.data === null) {
@@ -139,23 +151,6 @@ async function getStockInfo(exchange: string, symbol: string) {
   }
 
   // Build Symbol Table Insert
-  const stockInfoInsert: { [index: string]: any } = {
-    symbol: "",
-    companyName: null,
-    stockType: null,
-    exchange: null,
-    isNasdaqListed: null,
-    isNasdaq100: null,
-    assetClass: null,
-    keyStats: null,
-    addressString: null,
-    phone: null,
-    industry: null,
-    sector: null,
-    region: null,
-    companyUrl: null,
-    companyDescription: null,
-  };
 
   for (let property of companyInfoFields) {
     if (
@@ -165,33 +160,39 @@ async function getStockInfo(exchange: string, symbol: string) {
       infoJson.data[property] &&
       infoJson.data[property] !== null
     ) {
-      stockInfoInsert[property] = infoJson.data[property];
+      symbolTableFields[property] = infoJson.data[property];
     } else {
-      stockInfoInsert[property] = null;
+      symbolTableFields[property] = null;
     }
   }
 
   for (let property of companyProfileFields) {
+    let profileJsonProperty = property;
+    profileJsonProperty =
+      profileJsonProperty.charAt(0).toUpperCase() +
+      profileJsonProperty.slice(1);
     if (
       profileJson !== null &&
       profileJson.data !== undefined &&
       profileJson.data !== null &&
-      profileJson.data[property] &&
-      profileJson.data[property] !== null
+      profileJson.data[profileJsonProperty] &&
+      profileJson.data[profileJsonProperty] !== null
     ) {
       if (property === "addressString") {
-        stockInfoInsert[property] = profileJson.data["Address"]["value"];
+        symbolTableFields[property] = profileJson.data["Address"]["value"];
       } else {
-        property = property.charAt(0).toUpperCase() + property.slice(1);
-        stockInfoInsert[property] = profileJson.data[property]["value"];
+        symbolTableFields[property] =
+          profileJson.data[profileJsonProperty]["value"];
       }
     } else {
-      stockInfoInsert[property] = null;
+      symbolTableFields[property] = null;
     }
   }
 
-  // Insert into Symbols Table
-  mySQLUtils.insertRow("symbols", stockInfoInsert);
+  // Insert into symbols Table
+  if (log) console.log("\tInserting Symbol");
+  if (log) console.log(symbolTableFields);
+  mySQLUtils.insertRow("symbols", symbolTableFields);
 
   // Build Notifications Insert
   if (
@@ -231,118 +232,58 @@ async function getStockInfo(exchange: string, symbol: string) {
       notificationInsertList.push(notificationInsert);
     });
 
-    // Inserts into Notifications Table
+    // Inserts into notifications Table
+    if (log) console.log("\tInserting Notifications");
     mySQLUtils.insertRows("notifications", notificationInsertList);
   }
 
   // Build KeyExecutives Insert
+  if (
+    profileJson !== null &&
+    profileJson.data !== undefined &&
+    profileJson.data !== null &&
+    profileJson.data["KeyExecutives"] &&
+    profileJson.data["KeyExecutives"] !== null &&
+    profileJson.data["KeyExecutives"]["value"] &&
+    profileJson.data["KeyExecutives"]["value"] !== null &&
+    profileJson.data["KeyExecutives"]["value"].length > 0
+  ) {
+    let keyExecutiveList: KeyExecutive[] = [];
+    profileJson.data["KeyExecutives"]["value"].forEach((ke: KeyExecutive) => {
+      keyExecutiveList.push({ name: ke.name, title: ke.title });
+    });
 
-  //
-  // OLD FROM HERE DOWN
-  //
-
-  // Get Stock Info
-  /*
-  for (let property of stockInfoFields) {
-    if (
-      infoJson !== null &&
-      infoJson.data !== undefined &&
-      infoJson.data !== null &&
-      infoJson.data[property].value !== null
-    ) {
-      const lowerProperty =
-        property.charAt(0).toLowerCase() + property.slice(1);
-      stockInsert[lowerProperty] = infoJson.data[property].value;
-    }
+    // Inserts into keyExecutives Table
+    if (log) console.log("\tInserting keyExecutives");
+    mySQLUtils.insertRows("keyExecutives", keyExecutiveList);
   }
 
-  if (stockInsert !== undefined && stockInsert["address"] !== null) {
-    stockInsert["addressString"] = stockInsert["address"];
-    stockInsert["address"] = undefined;
-  }
-
-  // Get Stock Company Profile
-  let companyUrl = stockCompanyUrlTpl.replace("__STOCK_SYMBOL__", stockSymbol);
-
-  const companyJson = await contentUtils.getPageContent(companyUrl);
-
-  for (let property of stockCompanyFields) {
-    if (
-      companyJson !== null &&
-      companyJson.data !== undefined &&
-      companyJson.data !== null &&
-      companyJson.data[property] !== undefined &&
-      companyJson.data[property] !== null
-    ) {
-      if (property === "symbol") {
-        let lowerSymbol = companyJson.data[property].toLowerCase();
-        companyJson.data[property] = lowerSymbol;
-      }
-      stockInsert[property] = companyJson.data[property];
-    }
-  }
-
-  // Get Stock Data
-  const dataUrlTpl = stockDataUrlTpl.replace("__STOCK_SYMBOL__", stockSymbol);
-
-  const firstDataUrl = dataUrlTpl.replace("__PARAMS__", params[0]);
-
-  const secondDataUrl = dataUrlTpl.replace("__PARAMS__", params[1]);
-  let url = firstDataUrl;
-  let dataJson = await contentUtils.getPageContent(firstDataUrl);
-
-  if (dataJson?.data === null) {
-    url = secondDataUrl;
-    dataJson = await contentUtils.getPageContent(secondDataUrl);
-  }
-
-  for (let property of stockDataFields) {
-    if (
-      dataJson !== null &&
-      dataJson.data !== undefined &&
-      dataJson.data !== null &&
-      dataJson.data[property] &&
-      dataJson.data[property] !== null
-    ) {
-      stockInsert[property] = dataJson.data[property];
-    }
-  }
+  // Build Dividends Insert
 
   if (
-    dataJson !== null &&
-    dataJson.data !== undefined &&
-    dataJson.data !== null &&
-    dataJson.data["dividends"] &&
-    dataJson.data["dividends"] !== null
+    dividendJson !== null &&
+    dividendJson.data !== undefined &&
+    dividendJson.data !== null &&
+    dividendJson.data["dividends"] &&
+    dividendJson.data["dividends"] !== null &&
+    dividendJson.data["dividends"]["rows"] &&
+    dividendJson.data["dividends"]["rows"] !== null &&
+    dividendJson.data["dividends"]["rows"].length > 0
   ) {
-    stockInsert["dividends"] = dataJson.data["dividends"].rows;
-  }
-  try {
-    await mongoUtils.insertSymbolData(stockInsert);
-  } catch (err) {
-    console.error("ERROR: addSymbolSummary: ", exchange, stockSymbol, err);
-  }
-  */
-}
+    let dividendList: Dividend[] = [];
+    dividendJson.data["dividends"]["rows"].forEach((div: Dividend) => {
+      dividendList.push({
+        exOrEffDate: div.exOrEffDate,
+        type: div.type,
+        amount: div.amount,
+        declarationDate: div.declarationDate,
+        recordDate: div.recordDate,
+        paymentDate: div.paymentDate,
+      });
+    });
 
-/*    let stockInsert: any = {
-      symbol: "",
-      companyName: "",
-      stockType: "",
-      exchange: "",
-      isNasdaqListed: undefined,
-      isNasdaq100: undefined,
-      isHeld: undefined,
-      assetClass: "",
-      keyStats: "",
-      notifications: undefined,
-      address: undefined,
-      addressString: undefined,
-      phone: "",
-      industry: "",
-      sector: "",
-      region: "",
-      companyUrl: "",
-      companyDescription: "",
-      keyExecutives: undefined,
-   }; */
+    // Inserts into dividends Table
+    if (log) console.log("\tInserting dividends");
+    mySQLUtils.insertRows("dividends", dividendList);
+  }
+}

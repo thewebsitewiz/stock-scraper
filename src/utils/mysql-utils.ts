@@ -31,54 +31,56 @@ module.exports.insertRow = async (table: string, data: any) => {
 };
 
 async function _insertRow(table: string, data: any) {
-  let cols: string[] = [];
-  let params: string[] = [];
-  let vals: (string | number)[] = [];
+  let post: any = {};
 
   let dataKeys = Object.keys(data);
   dataKeys.forEach((key: string) => {
     if (table !== "symbols" && key === "stockSymbol") {
-      cols.push("symbols_symbol");
-      params.push("?");
-      vals.push(`"${data[key]}"`);
-    } else {
-      if (key === "companyUrl") {
-        if (!data[key].match(/^http/)) {
-          data[key] = null;
-        }
-      }
+      console.log("symbols_symbol");
+      post["symbols_symbol"] = `"${data[key]}"`;
+    }
 
-      if (table === "dividends") {
-        const index = listOfDateFields.indexOf(key);
-        if (index > -1) {
-          // 2014-07-18T04:00:00.000+00:00
-          // console.log(typeof data[key], key, data[key])
-          data[key] = _yyymmdd(new Date(data[key]));
-        }
+    if (key === "companyUrl") {
+      if (!data[key].match(/^http/)) {
+        data[key] = null;
       }
+    }
 
-      if (data[key] !== undefined && data[key] !== null && data[key] !== "") {
-        if (typeof data[key] === "string") {
-          data[key] = data[key].replace(/ "/g, " &ldquo;");
-          data[key] = data[key].replace(/" /g, "&rdquo; ");
-          data[key] = data[key].replace(/"./g, "&rdquo;.");
-          data[key] = data[key].replace(/"$/g, "&rdquo;");
-          // data[key] = data[key].replace(/'/g, '\\\'');
-        }
-
-        if (typeof data[key] === "boolean") {
-          data[key] === false ? (data[key] = 0) : (data[key] = 1);
-        }
-        cols.push(key);
-        // params.push("?");
-        vals.push(`"${data[key]}"`);
+    if (table === "dividends") {
+      const index = listOfDateFields.indexOf(key);
+      if (index > -1) {
+        // 2014-07-18T04:00:00.000+00:00
+        // console.log(typeof data[key], key, data[key])
+        data[key] = _yyymmdd(new Date(data[key]));
       }
+    }
+
+    if (typeof data[key] === "boolean") {
+      data[key] === false || null ? (data[key] = 0) : (data[key] = 1);
+
+      console.log("foo: ", key, typeof data[key]);
+      post[key] = `"${data[key]}"`;
+    } else if (
+      data[key] !== undefined &&
+      data[key] !== null &&
+      data[key] !== ""
+    ) {
+      if (typeof data[key] === "string") {
+        data[key] = data[key].replace(/ "/g, " &ldquo;");
+        data[key] = data[key].replace(/" /g, "&rdquo; ");
+        data[key] = data[key].replace(/"./g, "&rdquo;.");
+        data[key] = data[key].replace(/"$/g, "&rdquo;");
+        // data[key] = data[key].replace(/'/g, '\\\'');
+      }
+      console.log("bar: ", key, typeof data[key]);
+      post[key] = `"${data[key]}"`;
     }
   });
 
-  const insertSQL = `insert into ${table} (${cols}) values (${vals})`;
+  const query = await pool.query("INSERT INTO posts SET ?", post);
+  console.log(query.sql); // INSERT INTO posts SET `id` = 1, `title` = 'Hello MySQL'
 
-  const result = await pool.query(insertSQL);
+  if (table === "symbols") console.log(query.results); //
 }
 
 module.exports.insertRows = async (table: string, dataList: any) => {
