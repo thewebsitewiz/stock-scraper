@@ -36,7 +36,6 @@ async function _insertRow(table: string, data: any) {
   let dataKeys = Object.keys(data);
   dataKeys.forEach((key: string) => {
     if (table !== "symbols" && key === "stockSymbol") {
-      console.log("symbols_symbol");
       post["symbols_symbol"] = `"${data[key]}"`;
     }
 
@@ -57,8 +56,6 @@ async function _insertRow(table: string, data: any) {
 
     if (typeof data[key] === "boolean") {
       data[key] === false || null ? (data[key] = 0) : (data[key] = 1);
-
-      console.log("foo: ", key, typeof data[key]);
       post[key] = `"${data[key]}"`;
     } else if (
       data[key] !== undefined &&
@@ -72,15 +69,17 @@ async function _insertRow(table: string, data: any) {
         data[key] = data[key].replace(/"$/g, "&rdquo;");
         // data[key] = data[key].replace(/'/g, '\\\'');
       }
-      console.log("bar: ", key, typeof data[key]);
       post[key] = `"${data[key]}"`;
     }
   });
+  try {
+    const query = await pool.query("INSERT INTO posts SET ?", post);
+    console.log(query.sql); // INSERT INTO posts SET `id` = 1, `title` = 'Hello MySQL'
 
-  const query = await pool.query("INSERT INTO posts SET ?", post);
-  console.log(query.sql); // INSERT INTO posts SET `id` = 1, `title` = 'Hello MySQL'
-
-  if (table === "symbols") console.log(query.results); //
+    if (table === "symbols") console.log(query.results);
+  } catch (e: any) {
+    throw new Error(e);
+  }
 }
 
 module.exports.insertRows = async (table: string, dataList: any) => {

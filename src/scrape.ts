@@ -3,7 +3,7 @@ const contentUtils = require("./utils/content-utils");
 
 const mySQLUtils = require("./utils/mysql-utils");
 
-const log = true;
+const log = false;
 
 import {
   Company,
