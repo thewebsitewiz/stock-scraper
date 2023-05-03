@@ -1,3 +1,5 @@
+import { SymbolList } from "../interfaces/stockSymbols";
+
 export {};
 
 const util = require("util");
@@ -18,12 +20,37 @@ console.log("MySQL connection pool available");
 
 module.exports = pool;
 
-const listOfDateFields: string[] = [];
+const listOfDateFields: string[] = [
+  "exOrEffDate",
+  "declarationDate",
+  "recordDate",
+  "paymentDate",
+];
 
 module.exports.getSymbolsWithData = async () => {
-  const selectSymbolsSQL = `select symbol from symbols order by exchangeNickname,symbol`;
-  const results = await pool.query(selectSymbolsSQL);
-  return results;
+  const selectSymbolsSQL = `select symbol,exchangeNickname from symbols order by exchangeNickname,symbol`;
+  try {
+    let results = await pool.query(selectSymbolsSQL);
+
+    if (!results) {
+      console.log("\n\n============================================");
+      console.log("ERROR: getSymbolsWithData");
+      console.log(selectSymbolsSQL);
+      console.log("\n============================================");
+      return null;
+    } else {
+      let listOfSymbols: SymbolList = [];
+      results.forEach((result: { [key: string]: string }) => {
+        listOfSymbols.push({
+          symbol: result["symbol"],
+          exchangeNickname: result["exchangeNickname"],
+        });
+      });
+      return listOfSymbols;
+    }
+  } catch (e: any) {
+    console.log(e);
+  }
 };
 
 module.exports.insertRow = async (table: string, data: any) => {
@@ -31,15 +58,17 @@ module.exports.insertRow = async (table: string, data: any) => {
 };
 
 async function _insertRow(table: string, data: any) {
-  let post: any = {};
+  let columns: string[] = [];
+  let values: string[] = [];
 
   let dataKeys = Object.keys(data);
   dataKeys.forEach((key: string) => {
     if (table !== "symbols" && key === "stockSymbol") {
-      post["symbols_symbol"] = `"${data[key]}"`;
+      columns.push(`"symbols_symbol"`);
+      values.push(`"${data[key]}"`);
     }
 
-    if (key === "companyUrl") {
+    if (key === "companyUrl" && data[key] !== null) {
       if (!data[key].match(/^http/)) {
         data[key] = null;
       }
@@ -49,14 +78,16 @@ async function _insertRow(table: string, data: any) {
       const index = listOfDateFields.indexOf(key);
       if (index > -1) {
         // 2014-07-18T04:00:00.000+00:00
-        // console.log(typeof data[key], key, data[key])
+        console.log(typeof data[key], key, data[key]);
         data[key] = _yyymmdd(new Date(data[key]));
       }
     }
 
     if (typeof data[key] === "boolean") {
       data[key] === false || null ? (data[key] = 0) : (data[key] = 1);
-      post[key] = `"${data[key]}"`;
+
+      columns.push(`${key}`);
+      values.push(`"${data[key]}"`);
     } else if (
       data[key] !== undefined &&
       data[key] !== null &&
@@ -69,16 +100,30 @@ async function _insertRow(table: string, data: any) {
         data[key] = data[key].replace(/"$/g, "&rdquo;");
         // data[key] = data[key].replace(/'/g, '\\\'');
       }
-      post[key] = `"${data[key]}"`;
+
+      columns.push(`${key}`);
+      values.push(`"${data[key]}"`);
     }
   });
-  try {
-    const query = await pool.query("INSERT INTO posts SET ?", post);
-    console.log(query.sql); // INSERT INTO posts SET `id` = 1, `title` = 'Hello MySQL'
 
-    if (table === "symbols") console.log(query.results);
+  try {
+    console.log(table);
+    const sql = `INSERT INTO ${table} (${columns}) VALUES (${values})`;
+    // console.log(sql);
+    pool.query(sql, (err: any, results: any) => {
+      if (err && table === "keyExecutives") {
+        console.log("\n\n============================================");
+        console.log(table);
+        console.log("columns: ", columns);
+        console.log("values: ", values);
+        console.log(err);
+        console.log("\n============================================");
+      } else {
+        console.log(table, results);
+      }
+    });
   } catch (e: any) {
-    throw new Error(e);
+    console.log(e);
   }
 }
 
@@ -97,12 +142,19 @@ function _remove(item: string, array: string[]) {
 }
 
 function _yyymmdd(date: Date) {
-  var mm = date.getMonth() + 1; // getMonth() is zero-based
-  var dd = date.getDate();
+  const mm = date.getMonth() + 1; // getMonth() is zero-based
+  const dd = date.getDate();
+  const yyyy = date.getFullYear();
 
-  return [
-    date.getFullYear(),
-    (mm > 9 ? "" : "0") + mm,
-    (dd > 9 ? "" : "0") + dd,
-  ].join("-");
+  console.log(mm, dd, yyyy);
+
+  if (
+    typeof mm === "number" &&
+    typeof dd === "number" &&
+    typeof yyyy === "number"
+  ) {
+    return [yyyy, (mm > 9 ? "" : "0") + mm, (dd > 9 ? "" : "0") + dd].join("-");
+  } else {
+    return "";
+  }
 }

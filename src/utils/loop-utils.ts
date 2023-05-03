@@ -3,51 +3,64 @@ const symbolLists = symbolUtils.getExchangeSymbols();
 const mysqlUtils = require("./mysql-utils");
 
 const log = true;
-import { SymbolList, SymbolListInfo } from "../interfaces/stockSymbols";
+import {
+  ExistingSymbols,
+  SymbolList,
+  SymbolListInfo,
+} from "../interfaces/stockSymbols";
 
 module.exports.loopThruStocks = async (doThis: Function) => {
-  if (log) console.log("\tIn Loop");
-  const existingSymbolsData: SymbolList = await mysqlUtils.getSymbolsWithData();
-  let existingSymbols: any = {};
-  if (existingSymbolsData.length > 0) {
-    if (log) console.log("\tFound Existing Symbols");
-    existingSymbolsData.forEach((symbolData: SymbolListInfo) => {
-      let ex: string = symbolData["exchangeNickname"];
-      let sym: string = symbolData["symbol"];
-      if (!(existingSymbols[ex] in existingSymbols)) {
-        existingSymbols[ex] = {};
-      }
-      existingSymbols[ex][sym] = true;
-    });
-  }
+  console.log("\tIn Loop");
+  try {
+    const existingSymbolsData = await mysqlUtils.getSymbolsWithData();
 
-  let cnt = 0;
-  if (log) console.log("Starting Loop");
-  console.log("existingSymbols: ", existingSymbols);
-  for (let exchange in symbolLists) {
-    console.log(`Exchange: ${exchange}`);
-    if (symbolLists.hasOwnProperty(exchange)) {
-      const symbolList = Object.keys(symbolLists[exchange]);
+    let existingSymbols: ExistingSymbols = {};
+    if (existingSymbolsData !== null && existingSymbolsData.length > 0) {
+      console.log("\tFound Existing Symbols");
+      existingSymbolsData.forEach((symbolData: SymbolListInfo) => {
+        const exNick: string = symbolData["exchangeNickname"];
+        const symbol: string = symbolData["symbol"];
+        if (!existingSymbols[exNick] || existingSymbols[exNick] !== undefined) {
+          existingSymbols[exNick] = {};
+        }
+        existingSymbols[exNick][symbol] = true;
+      });
+    }
+
+    const existingSymbolsKeyList = Object.keys(existingSymbols);
+
+    let cnt = 0;
+    console.log("Starting Loop");
+    const exchanges = Object.keys(symbolLists).sort();
+    for (let exchange of exchanges) {
+      console.log(`Exchange: ${exchange}`);
+      const symbolList = Object.keys(symbolLists[exchange]).sort();
       for (let symbol of symbolList) {
-        console.log(`Symbol: ${symbol}`);
-        const existingSymbolsKeyList = Object.keys(existingSymbols);
-
-        console.log(`Length: ${existingSymbolsKeyList.length}`);
         if (existingSymbolsKeyList.length === 0) {
-          console.log(`${exchange} : ${symbol}`);
+          console.log(`\t${exchange} : ${symbol}`);
           await doThis(exchange, symbol);
         } else {
-          if (existingSymbols[exchange][symbol] === undefined) {
-            console.log(`${exchange} : ${symbol}`);
+          if (
+            existingSymbols[exchange] &&
+            existingSymbols[exchange] !== undefined &&
+            existingSymbols[exchange][symbol] === undefined
+          ) {
+            console.log(`\t${exchange} : ${symbol}`);
             await doThis(exchange, symbol);
+          } else {
+            console.log(`\t\tskipping${exchange} : ${symbol}`);
           }
         }
         cnt++;
         if (cnt > 0) {
-          process.exit(0);
+          break;
         }
       }
+      if (cnt > 0) {
+        break;
+      }
     }
-    // }
+  } catch (e) {
+    console.log("e: ", e);
   }
 };

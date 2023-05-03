@@ -69,8 +69,13 @@ export interface StockSymbolInfo {
 
 export interface SymbolListInfo {
   symbol: string;
-  exchange: string;
   exchangeNickname: string;
 }
 
 export interface SymbolList extends Array<SymbolListInfo> {}
+
+export interface ExistingSymbols {
+  [key: string]: {
+    [key: string]: boolean;
+  };
+}
